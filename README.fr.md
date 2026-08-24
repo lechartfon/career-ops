@@ -99,7 +99,7 @@ Conçu par quelqu'un qui l'a utilisé pour évaluer plus de 740 offres d'emploi,
 | **Scanner de Portails** | Plus de 45 entreprises préconfigurées (Anthropic, OpenAI, ElevenLabs, Retool, n8n...) + requêtes personnalisées sur Ashby, Greenhouse, Lever, Wellfound |
 | **Traitement en Lot** | Évaluation parallèle avec des processus de travail `claude -p` |
 | **TUI de Tableau de Bord** | Interface terminal pour explorer, filtrer et trier votre pipeline |
-| **Humain dans la Boucle** | L'IA évalue et recommande, vous décidez et agissez. Le système ne soumet jamais de candidature automatiquement — vous avez toujours le dernier mot |
+| **Humain dans la Boucle** | L'IA évalue et recommande, vous décidez et agissez. Le système ne soumet jamais de candidature — vous avez toujours le dernier mot <!-- hitl: absolute guarantee. Do not add "automatically", "by itself", "without your permission" or any other hedge when translating this row. --> |
 | **Intégrité du Pipeline** | Fusion automatisée, déduplication, normalisation des statuts et vérifications de santé |
 
 ## Démarrage rapide
@@ -147,15 +147,13 @@ career-ops prend en charge [Gemini CLI](https://github.com/google-gemini/gemini-
 # 1. Installez Gemini CLI
 npm install -g @google/gemini-cli
 # ou : npx @google/gemini-cli --version
+#    L'authentification se fait via votre compte Google (gratuit) au premier lancement
 
-# 2. Authentifiez-vous (gratuit, utilise votre compte Google)
-gemini auth
-
-# 3. Exécutez dans le dossier career-ops
+# 2. Exécutez dans le dossier career-ops
 cd career-ops
 gemini
 
-# 4. Utilisez la commande unifiée /career-ops avec ses sous-commandes :
+# 3. Utilisez la commande unifiée /career-ops avec ses sous-commandes :
 /career-ops "Senior AI Engineer at Anthropic..."
 /career-ops pipeline
 /career-ops scan
@@ -181,7 +179,7 @@ node gemini-eval.mjs --file ./jds/my-job.txt
 npm run gemini:eval -- "Texte de la description de poste ici"
 ```
 
-> **Offre gratuite :** Les deux options fonctionnent sans facturation. Le CLI natif utilise l'authentification OAuth Google ; le script d'API utilise `gemini-2.5-flash` (15 requêtes/min, 1M de jetons/jour gratuits).
+> **Offre gratuite :** Les deux options fonctionnent sans facturation. Le CLI natif utilise l'authentification OAuth Google ; le script d'API utilise `gemini-3.6-flash` (les limites de requêtes dépendent du modèle et du niveau d'accès ; voir la documentation Google AI pour les quotas actuels).
 
 ## Utilisation
 
@@ -195,6 +193,7 @@ career-ops est accessible via une commande slash unique avec plusieurs modes :
 /career-ops batch          → Évaluer plusieurs offres en lot
 /career-ops tracker        → Consulter l'état des candidatures
 /career-ops apply          → Remplir des formulaires de candidature avec l'IA
+/career-ops outcome        → Enregistrer le résultat et archiver la candidature
 /career-ops pipeline       → Traiter les URL en attente
 /career-ops contacto       → Message d'approche LinkedIn
 /career-ops deep           → Recherche approfondie sur une entreprise

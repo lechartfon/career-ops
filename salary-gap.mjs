@@ -30,7 +30,7 @@
 import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 
 const CAREER_OPS = dirname(fileURLToPath(import.meta.url));
 const OBS_PATH = join(CAREER_OPS, 'data/salary-observations.tsv');
@@ -52,13 +52,24 @@ const TRUST = {
 export function parseAmount(raw) {
   let s = String(raw ?? '').trim();
   if (!s || s === '?' || s === '-' || /^(n\/?a|null)$/i.test(s)) return null;
-  // Strip a leading currency symbol and a trailing 3-letter ISO-4217-style alpha
-  // token (any case — "450k SEK", "80-90k eur"). Exactly three letters, so the
-  // lone "k" magnitude suffix ("80k") is never eaten, and prose ("competitive")
-  // still fails the numeric match below even after losing its last three letters.
-  s = s.replace(/^[€$£¥]\s*/, '').replace(/\s*[A-Za-z]{3}\s*$/, '').trim();
+  // Strip currency symbols anywhere (US pay-transparency ranges often repeat the
+  // symbol on both bounds: "$123,684—$254,644 USD") and a trailing 3-letter
+  // ISO-4217-style alpha token (any case — "450k SEK", "80-90k eur"). Exactly
+  // three letters, so the lone "k" magnitude suffix ("80k") is never eaten, and
+  // prose ("competitive") still fails the numeric match below even after losing
+  // its last three letters.
+  s = s.replace(/[€$£¥]/g, '').replace(/\s*[A-Za-z]{3}\s*$/, '').trim();
   const toNum = (numStr, kFlag) => {
-    const n = parseFloat(numStr.replace(/,/g, ''));
+    // A period counts as thousands grouping only when it's followed by
+    // exactly three digits and not a fourth ("35.000" -> 35000), so markets
+    // that group with a period (Spain, Germany, Italy, the Netherlands,
+    // Brazil, ...) don't get folded to 1/1000th. Genuine decimals like
+    // "82.5" are untouched since they carry one digit after the point. A
+    // three-place decimal ("1.250") is ambiguous without knowing the
+    // document's locale; reading it as grouped is the safer default for a
+    // salary field (per #3174).
+    const normalized = numStr.replace(/,/g, '').replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1');
+    const n = parseFloat(normalized);
     return Number.isNaN(n) ? null : (kFlag ? n * 1000 : n);
   };
   const range = s.match(/^([\d.,]+)\s*(k)?\s*[-–—]\s*([\d.,]+)\s*(k)?$/i);
@@ -371,6 +382,13 @@ function selfTest() {
   assert(parseAmount('9ok') === null, 'typo -> null');
   assert(parseAmount('450k SEK')?.mid === 450000, 'generic trailing ISO token stripped (450k SEK)');
   assert(parseAmount('80-90k eur')?.mid === 85000, 'lowercase trailing ISO token stripped');
+  assert(parseAmount('$123,684—$254,644 USD')?.mid === 189164, 'US range, symbol on both bounds, em dash');
+  assert(parseAmount('$123,684-$254,644 USD')?.mid === 189164, 'US range, symbol on both bounds, hyphen');
+  assert(parseAmount('€80,000-€90,000')?.min === 80000, 'EUR range, symbol on both bounds');
+  assert(parseAmount('$150,000')?.mid === 150000, 'single value with symbol still works');
+  assert(parseAmount('€35.000 - €45.000')?.min === 35000 && parseAmount('€35.000 - €45.000')?.max === 45000, 'period-grouped range (#3174)');
+  assert(parseAmount('40.000')?.mid === 40000, 'period-grouped single value (#3174)');
+  assert(parseAmount('35.000 - 55.000')?.mid === 45000, 'period-grouped range, no currency symbol (#3174)');
 
   // parseObservations
   const obs = parseObservations(OBS_FIXTURE);
